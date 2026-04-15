@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f4f7f6; padding: 20px; }
+    .card-stats { border-left: 5px solid #2563eb; }
+    .status-pendente { color: #f59e0b; font-weight: bold; }
+    .status-concedido { color: #10b981; font-weight: bold; }
+    .status-negado { color: #ef4444; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <h2 class="mb-4">Dashboard de Gestão de Licenças</h2>
+    
+    <div class="row mb-4">
+      <div class="col-md-3"><div class="card p-3 card-stats">Total Pedidos: <b id="total">0</b></div></div>
+      <div class="col-md-3"><div class="card p-3 border-warning">Pendentes: <b id="pendentes">0</b></div></div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <input type="text" id="filtroNome" class="form-control" placeholder="Filtrar por Nome ou Matrícula..." onkeyup="filtrar()">
+      </div>
+    </div>
+
+    <div class="table-responsive bg-white p-3 rounded shadow-sm">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Data</th><th>Motorista</th><th>Início/Fim</th><th>Motivo</th><th>Status</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function carregarDados() {
+      google.script.run.withSuccessHandler(renderizar).getPedidos();
+    }
+
+    function renderizar(pedidos) {
+      const corpo = document.getElementById('corpoTabela');
+      corpo.innerHTML = "";
+      let p = 0;
+      
+      pedidos.reverse().forEach(pedido => {
+        if(pedido.status === "Pendente") p++;
+        corpo.innerHTML += `
+          <tr>
+            <td><small>${pedido.data}</small></td>
+            <td><b>${pedido.nome}</b><br><small>${pedido.matricula}</small></td>
+            <td>${pedido.inicio} até ${pedido.fim}</td>
+            <td>${pedido.motivo}</td>
+            <td class="status-${pedido.status.toLowerCase()}">${pedido.status}</td>
+            <td>
+              <button class="btn btn-sm btn-success" onclick="decidir(${pedido.id}, 'Concedido')">✓</button>
+              <button class="btn btn-sm btn-danger" onclick="decidir(${pedido.id}, 'Negado')">✕</button>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('total').innerText = pedidos.length;
+      document.getElementById('pendentes').innerText = p;
+    }
+
+    function decidir(id, status) {
+      let obs = prompt("Observação/Motivo (opcional):");
+      google.script.run.withSuccessHandler(carregarDados).atualizarStatus(id, status, obs);
+    }
+
+    function filtrar() {
+      let input = document.getElementById("filtroNome").value.toUpperCase();
+      let rows = document.getElementById("corpoTabela").getElementsByTagName("tr");
+      for (let i = 0; i < rows.length; i++) {
+        rows[i].style.display = rows[i].innerText.toUpperCase().includes(input) ? "" : "none";
+      }
+    }
+
+    window.onload = carregarDados;
+  </script>
+</body>
+</html>
